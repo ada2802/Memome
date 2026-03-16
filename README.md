@@ -1,4 +1,4 @@
-# MemoMe v2 — Private Voice Transcription
+# MemoMe — Private Voice Transcription
 
 Local, private voice transcription + real-time translation into any of 17 languages.  
 No cloud. No Kafka. No Redis. No Docker. One Python process.
