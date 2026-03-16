@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MemoMe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Dark theme (default) ────────────────────────────────────── */
+:root{
+  --bg:#07080c;--surf:#0d0f1a;--card:#131624;--card2:#181c2e;
+  --b1:rgba(255,255,255,.06);--b2:rgba(255,255,255,.12);--b3:rgba(255,255,255,.18);
+  --tp:#dde3f0;--ts:#546080;--tm:#8896b4;
+  --en:#a5b4fc;--zh:#fcd34d;
+  --acc:#5b21b6;--acc2:#7c3aed;--acc3:#a78bfa;
+  --rec:#ef4444;--rec2:#fca5a5;
+  --ok:#22c55e;--ok2:#86efac;
+  --warn:#f59e0b;--warn2:#fcd34d;
+  --flag:#f97316;
+  --info:#38bdf8;
+  --r:10px;--r2:7px;
+  --shadow:0 4px 24px rgba(0,0,0,.45);
+  --shadow-sm:0 2px 8px rgba(0,0,0,.3);
+}
+
+/* ── Light theme ─────────────────────────────────────────────── */
+:root.light{
+  --bg:#f0f2f7;--surf:#ffffff;--card:#e8eaf2;--card2:#dfe2ed;
+  --b1:rgba(0,0,0,.08);--b2:rgba(0,0,0,.14);--b3:rgba(0,0,0,.22);
+  --tp:#1a1d2e;--ts:#6b7a99;--tm:#3d4a6b;
+  --en:#3730a3;--zh:#7c2d12;
+  --acc:#5b21b6;--acc2:#7c3aed;--acc3:#6d28d9;
+  --rec:#dc2626;--rec2:#991b1b;
+  --ok:#15803d;--ok2:#166534;
+  --warn:#b45309;--warn2:#92400e;
+  --flag:#c2410c;--info:#0369a1;
+  --shadow:0 4px 24px rgba(0,0,0,.12);
+  --shadow-sm:0 2px 8px rgba(0,0,0,.08);
+}
+
+html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tp);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+a{color:inherit;text-decoration:none}
+input,textarea,select{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ══════════════════════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════════════════════ */
+.topbar{
+  display:flex;align-items:center;padding:0 16px;
+  border-bottom:1px solid var(--b1);background:var(--surf);
+  height:48px;flex-shrink:0;z-index:10;gap:2px;
+}
+.logo{
+  font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:18px;
+  letter-spacing:-.5px;display:flex;align-items:center;gap:7px;
+  padding-right:20px;border-right:1px solid var(--b1);margin-right:4px;flex-shrink:0;
+}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--acc3);flex-shrink:0}
+.nav-btn{
+  padding:0 14px;height:48px;display:flex;align-items:center;gap:7px;
+  font-size:13px;color:var(--ts);border:none;background:transparent;
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.nav-btn:hover{color:var(--tm)}
+.nav-btn.active{color:var(--acc3);border-bottom-color:var(--acc3)}
+.nav-icon{font-size:15px;line-height:1}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* ── Status badge ─────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--b1);color:var(--ts)}
+.badge.ok  {color:var(--ok); border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.07)}
+.badge.rec {color:var(--rec);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.07)}
+.badge.wait{color:var(--warn);border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.07)}
+.badge.err {color:var(--rec2);border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.05)}
+.bdot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.bdot.pulse{animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Day / Night toggle ───────────────────────────────── */
+.theme-toggle{
+  display:flex;align-items:center;gap:6px;padding:5px 11px;
+  border-radius:20px;border:1px solid var(--b2);background:var(--card);
+  cursor:pointer;transition:all .2s;color:var(--tm);font-size:12px;
+  font-family:'Outfit',sans-serif;user-select:none;flex-shrink:0;
+}
+.theme-toggle:hover{background:var(--card2);color:var(--tp);border-color:var(--acc2)}
+.theme-toggle .theme-icon{font-size:15px;line-height:1;transition:transform .3s}
+.theme-toggle:hover .theme-icon{transform:rotate(20deg)}
+.theme-toggle .theme-label{font-size:11px;font-weight:500;letter-spacing:.3px}
+
+/* ══════════════════════════════════════════════════════
+   PAGES
+══════════════════════════════════════════════════════ */
+.page{display:none;flex:1;overflow:hidden;flex-direction:column}
+.page.active{display:flex}
+
+/* ══════════════════════════════════════════════════════
+   SIDEBAR SYSTEM — shared collapse behaviour
+══════════════════════════════════════════════════════ */
+.sb-panel{flex-shrink:0;background:var(--surf);overflow:hidden;transition:width .22s cubic-bezier(.4,0,.2,1)}
+.sb-panel.collapsed{width:0!important}
+.sb-panel.collapsed>*{opacity:0;pointer-events:none;transition:opacity .1s}
+
+/* Collapse toggle tab — sits at the edge of the sidebar */
+.sb-tab{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:20;
+  width:18px;height:48px;
+  background:var(--card2);border:1px solid var(--b2);
+  border-left:none;border-radius:0 7px 7px 0;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--ts);
+  transition:left .22s cubic-bezier(.4,0,.2,1), color .15s, background .15s;
+  user-select:none;
+}
+.sb-tab:hover{color:var(--tp);background:var(--card)}
+.sb-tab svg{width:8px;height:8px;fill:currentColor;transition:transform .22s}
+
+/* ══════════════════════════════════════════════════════
+   PAGE 1 — RECORD
+══════════════════════════════════════════════════════ */
+.rec-layout{display:flex;flex:1;overflow:hidden;position:relative}
+
+.rsidebar{width:252px;border-right:1px solid var(--b1)}
+.rsidebar.collapsed~.sb-tab{left:0}
+.rsb-tab{left:252px}
+
+.rsb-top{padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+
+.meta-form{background:var(--card);border:1px solid var(--b1);border-radius:var(--r2);padding:10px;display:flex;flex-direction:column;gap:6px}
+.mf-label{font-size:10px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--ts);margin-bottom:1px}
+.mf-input{width:100%;background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:5px 8px;color:var(--tp);font-size:12px;outline:none;transition:border-color .15s}
+.mf-input:focus{border-color:var(--acc2)}
+.mf-input::placeholder{color:var(--ts)}
+
+.rec-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px 14px;border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;letter-spacing:.2px}
+.rec-btn.start{background:var(--acc2);color:#fff;box-shadow:0 2px 12px rgba(124,58,237,.35)}
+.rec-btn.start:hover:not(:disabled){background:#6d28d9;transform:translateY(-1px);box-shadow:0 4px 18px rgba(124,58,237,.45)}
+.rec-btn.stop{background:rgba(239,68,68,.08);color:var(--rec);border:1px solid rgba(239,68,68,.22)}
+.rec-btn.stop:hover:not(:disabled){background:rgba(239,68,68,.14)}
+.rec-btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+
+.timer-row{display:none;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--card);border:1px solid var(--b1);border-radius:var(--r2);font-size:12px}
+.timer-row.show{display:flex}
+.timer-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--rec)}
+
+.drain-row{display:none;align-items:center;gap:6px;padding:7px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:var(--r2);font-size:12px;color:var(--warn)}
+.drain-row.show{display:flex}
+.spin{animation:spin .9s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.q-panel{display:none;flex-direction:column;gap:4px;padding:9px 10px;background:var(--card);border:1px solid var(--b1);border-radius:var(--r2);font-size:11px;color:var(--ts)}
+.q-panel.show{display:flex}
+.q-row{display:flex;align-items:center;gap:7px}
+.q-nm{width:44px;flex-shrink:0}
+.q-track{flex:1;height:2px;background:var(--b1);border-radius:2px}
+.q-fill{height:100%;border-radius:2px;background:var(--acc3);transition:width .4s;min-width:0}
+.q-n{min-width:16px;text-align:right}
+
+/* Recent Sessions sidebar section */
+.rsb-section-hdr{
+  padding:8px 12px 4px;font-size:10px;font-weight:500;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--ts);border-top:1px solid var(--b1);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.rsb-view-all{
+  font-size:11px;color:var(--acc3);cursor:pointer;
+  text-transform:none;letter-spacing:0;font-weight:400;
+  transition:color .15s;
+}
+.rsb-view-all:hover{color:var(--tp)}
+
+.rsb-list{flex:1;overflow-y:auto;padding-bottom:8px}
+.rsb-list::-webkit-scrollbar{width:3px}
+.rsb-list::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.rsb-item{
+  padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--b1);
+  transition:background .12s;display:flex;align-items:center;gap:8px;
+}
+.rsb-item:hover{background:var(--card)}
+.rsb-item-info{flex:1;min-width:0}
+.rsb-item-arrow{font-size:10px;color:var(--ts);flex-shrink:0;transition:color .15s,transform .15s}
+.rsb-item:hover .rsb-item-arrow{color:var(--acc3);transform:translateX(2px)}
+.rsi-title{font-size:12px;color:var(--tp);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rsi-sub{font-size:10px;color:var(--ts);margin-top:1px}
+.rsi-badge{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;vertical-align:middle}
+.rsi-badge.reviewed{background:rgba(34,197,94,.12);color:var(--ok2)}
+.rsi-badge.flagged{background:rgba(249,115,22,.12);color:var(--flag)}
+
+.rsb-foot{padding:10px 12px;border-top:1px solid var(--b1);font-size:11px;color:var(--ts);line-height:2;flex-shrink:0}
+.rsb-foot-row{display:flex;justify-content:space-between}
+.rsb-foot-val{color:var(--tm);font-family:'JetBrains Mono',monospace}
+
+.lang-select{width:100%;background:var(--bg);border:1px solid var(--b1);border-radius:5px;padding:5px 8px;color:var(--tp);font-size:12px;outline:none;cursor:pointer;transition:border-color .15s}
+.lang-select:focus{border-color:var(--acc2)}
+
+/* Main transcript area */
+.rmain{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.rtoolbar{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--b1);flex-shrink:0;gap:8px}
+.rtb-left{font-size:12px;color:var(--ts);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rtb-right{display:flex;gap:5px;flex-shrink:0}
+.sm-btn{padding:4px 10px;border-radius:5px;border:1px solid var(--b1);background:transparent;color:var(--ts);font-family:'Outfit',sans-serif;font-size:11px;cursor:pointer;transition:all .12s}
+.sm-btn:hover{background:var(--card);color:var(--tp);border-color:var(--b2)}
+.sm-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.col-hdr{display:grid;grid-template-columns:72px 1fr 1fr;border-bottom:1px solid var(--b1);flex-shrink:0}
+.col-hdr>div{padding:6px 14px;font-size:10px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--ts)}
+.col-hdr .ch-en{color:var(--en);opacity:.7}
+.col-hdr .ch-zh{color:var(--zh);opacity:.7;border-left:1px solid var(--b1)}
+
+.feed{flex:1;overflow-y:auto;scroll-behavior:smooth}
+.feed::-webkit-scrollbar{width:3px}
+.feed::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--ts);text-align:center;padding:40px}
+.empty-icon{width:56px;height:56px;border-radius:50%;background:var(--card);border:1px solid var(--b1);display:flex;align-items:center;justify-content:center;font-size:22px}
+.empty h2{font-weight:400;font-size:16px;color:var(--tm)}
+.empty p{font-size:12px;max-width:280px;line-height:1.7}
+
+.trunc-notice{text-align:center;padding:8px;font-size:11px;color:var(--ts);border-bottom:1px solid var(--b1);cursor:pointer}
+.trunc-notice:hover{color:var(--tm)}
+
+.entry{display:grid;grid-template-columns:72px 1fr 1fr;border-bottom:1px solid var(--b1);animation:fadeUp .22s ease-out}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.entry:hover{background:rgba(255,255,255,.013)}
+.e-time{padding:10px 10px 10px 14px;font-size:10px;color:var(--ts);font-family:'JetBrains Mono',monospace;border-right:1px solid var(--b1);line-height:1.4}
+.e-idx{font-size:9px;color:rgba(84,96,128,.55);display:block;margin-bottom:2px}
+.e-en{padding:10px 14px;font-size:13px;color:var(--en);line-height:1.65;word-break:break-word;min-width:0}
+.e-zh{padding:10px 14px;font-size:13px;color:var(--zh);line-height:1.65;word-break:break-word;border-left:1px solid var(--b1);min-width:0}
+.lang-badge{display:inline-block;font-size:9px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;padding:1px 5px;border-radius:3px;background:rgba(165,180,252,.1);color:var(--en);border:1px solid rgba(165,180,252,.18);margin-bottom:3px;vertical-align:middle}
+
+.rfooter{padding:8px 16px;border-top:1px solid var(--b1);background:var(--surf);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-size:11px;color:var(--ts)}
+.rfstats{display:flex;gap:14px}
+.rfstat span{color:var(--tm);font-family:'JetBrains Mono',monospace}
+
+/* ══════════════════════════════════════════════════════
+   PAGE 2 — SESSIONS
+══════════════════════════════════════════════════════ */
+.sessions-layout{display:flex;flex:1;overflow:hidden;position:relative}
+
+.sess-list-col{width:290px;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.sess-list-col.collapsed~.sb-tab{left:0}
+.sess-tab{left:290px}
+
+.slc-header{padding:10px 12px;border-bottom:1px solid var(--b1)}
+.slc-search{width:100%;background:var(--card);border:1px solid var(--b1);border-radius:5px;padding:5px 8px;font-size:12px;outline:none;color:var(--tp);margin-bottom:7px}
+.slc-search:focus{border-color:var(--acc2)}
+.slc-search::placeholder{color:var(--ts)}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.filter-sel{flex:1;min-width:110px;background:var(--card);border:1px solid var(--b1);border-radius:5px;padding:5px 8px;font-size:12px;color:var(--tm);cursor:pointer;outline:none}
+
+.sess-count{padding:4px 12px 5px;font-size:11px;color:var(--ts);border-bottom:1px solid var(--b1)}
+.sess-cards{flex:1;overflow-y:auto;padding:8px}
+.sess-cards::-webkit-scrollbar{width:3px}
+.sess-cards::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+.sess-card{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:11px 12px;margin-bottom:7px;cursor:pointer;transition:all .15s}
+.sess-card:hover{border-color:var(--b2);background:var(--card2)}
+.sess-card.selected{border-color:var(--acc2);background:rgba(91,33,182,.08)}
+.sc-title{font-size:13px;color:var(--tp);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.sc-meta{font-size:11px;color:var(--ts);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:5px}
+.sc-footer{display:flex;align-items:center;justify-content:space-between;font-size:11px}
+.sc-status{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:500}
+.sc-status.unreviewed{background:var(--b1);color:var(--ts)}
+.sc-status.reviewed{background:rgba(34,197,94,.1);color:var(--ok2)}
+.sc-status.flagged{background:rgba(249,115,22,.1);color:var(--flag)}
+.sc-chunks{color:var(--ts)}
+
+/* Session detail panel */
+.sess-detail{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.sd-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--ts);font-size:13px}
+
+.sd-toolbar{display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--b1);flex-shrink:0;flex-wrap:wrap}
+.sd-title-big{font-size:14px;font-weight:500;color:var(--tp);flex:1;min-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--b1);background:transparent;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .12s;color:var(--ts)}
+.icon-btn:hover{background:var(--card);border-color:var(--b2);color:var(--tp)}
+.icon-btn.danger:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--rec)}
+.status-select{background:var(--card);border:1px solid var(--b1);border-radius:5px;padding:4px 7px;font-size:12px;color:var(--tm);cursor:pointer;outline:none}
+.status-select option{background:var(--surf);color:var(--tp)}
+
+.sd-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+.sd-body::-webkit-scrollbar{width:3px}
+.sd-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+.sd-section{}
+.sd-section-title{font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--ts);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.field-group{display:flex;flex-direction:column;gap:4px}
+.field-group.full{grid-column:1/-1}
+.field-label{font-size:10px;color:var(--ts);letter-spacing:.5px;text-transform:uppercase}
+.field-input{background:var(--card);border:1px solid var(--b1);border-radius:5px;padding:7px 10px;color:var(--tp);font-size:12px;outline:none;transition:border-color .15s;resize:vertical;width:100%}
+.field-input:focus{border-color:var(--acc2)}
+.field-input::placeholder{color:var(--ts)}
+.save-btn{padding:6px 14px;border-radius:5px;border:none;background:var(--acc2);color:#fff;font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;font-weight:500}
+.save-btn:hover{background:var(--acc3);color:var(--bg)}
+
+/* Audio player */
+.audio-wrap{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:10px}
+audio{width:100%;accent-color:var(--acc3);outline:none;height:34px}
+.no-audio{font-size:12px;color:var(--ts);padding:8px 0;font-style:italic}
+
+/* Summary / Tasks */
+.sum-box{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:14px;font-size:13px;color:var(--tm);line-height:1.7;white-space:pre-wrap;min-height:60px}
+.sum-box.empty-msg{color:var(--ts);font-style:italic}
+.sum-btn{padding:6px 12px;border-radius:5px;border:1px solid var(--b1);background:transparent;color:var(--ts);font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:5px}
+.sum-btn:hover{background:var(--card);color:var(--tp);border-color:var(--b2)}
+.sum-btn:disabled{opacity:.4;cursor:not-allowed}
+.tasks-box{background:rgba(252,211,77,.04);border:1px solid rgba(252,211,77,.12);border-radius:var(--r);padding:14px;font-size:12px;color:var(--zh);line-height:1.8;white-space:pre-wrap;min-height:60px}
+.tasks-box.empty-msg{color:var(--ts);font-style:italic;background:var(--card);border-color:var(--b1)}
+
+/* ── Full Transcript ─────────────────────────────────── */
+.transcript-wrap{
+  border:1px solid var(--b1);border-radius:var(--r);
+  background:var(--card);overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.transcript-table-wrap{
+  overflow-y:auto;flex:1;
+  max-height:600px;  /* tall enough to read without scrolling constantly */
+}
+.transcript-table-wrap::-webkit-scrollbar{width:3px}
+.transcript-table-wrap::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.transcript-table{width:100%;border-collapse:collapse;font-size:13px}
+.transcript-table th{
+  text-align:left;padding:7px 12px;font-weight:500;font-size:10px;
+  text-transform:uppercase;letter-spacing:.6px;color:var(--ts);
+  border-bottom:1px solid var(--b1);
+  position:sticky;top:0;background:var(--card);z-index:1;
+}
+.transcript-table td{
+  padding:10px 12px;border-bottom:1px solid var(--b1);
+  vertical-align:top;line-height:1.6;
+  /* FULL text — no truncation */
+  word-break:break-word;
+  white-space:normal;
+}
+.transcript-table tr:last-child td{border-bottom:none}
+.transcript-table tr:hover td{background:rgba(255,255,255,.02)}
+.td-src{color:var(--en);width:40%}
+.td-tgt{color:var(--zh);width:40%}
+.td-num{color:var(--ts);font-family:'JetBrains Mono',monospace;width:36px}
+.td-lang{color:var(--ts);font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap}
+.td-ts{color:var(--ts);font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap}
+.transcript-footer{
+  padding:8px 12px;border-top:1px solid var(--b1);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:11px;color:var(--ts);flex-shrink:0;
+}
+
+/* ══════════════════════════════════════════════════════
+   PAGE 3 — MONITOR
+══════════════════════════════════════════════════════ */
+.mon-layout{display:flex;flex:1;overflow:hidden;position:relative}
+.mon-sidebar{width:250px;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.mon-sidebar.collapsed~.sb-tab{left:0}
+.mon-tab{left:250px}
+
+.mon-list-hdr{padding:8px 12px 6px;font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--ts);border-bottom:1px solid var(--b1);flex-shrink:0}
+.mon-list{flex:1;overflow-y:auto;padding:8px}
+.mon-list::-webkit-scrollbar{width:3px}
+.mon-list::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.mon-item{padding:9px 12px;border-radius:6px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:all .12s}
+.mon-item:hover{background:var(--card);border-color:var(--b1)}
+.mon-item.selected{background:rgba(91,33,182,.1);border-color:var(--acc2)}
+.mi-title{font-size:12px;color:var(--tp);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi-sub{font-size:10px;color:var(--ts);margin-top:2px}
+
+.mon-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.mon-empty{display:flex;align-items:center;justify-content:center;height:100%;color:var(--ts);font-size:13px}
+
+.mon-header{padding:12px 18px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.mon-title{font-size:15px;font-weight:500;color:var(--tp)}
+.mon-sub{font-size:11px;color:var(--ts);margin-top:2px;font-family:'JetBrains Mono',monospace}
+
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;padding:14px 18px;flex-shrink:0}
+.kpi-card{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:12px}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ts);margin-bottom:4px}
+.kpi-val{font-size:22px;font-family:'JetBrains Mono',monospace;color:var(--tp);font-weight:500;line-height:1.2}
+.kpi-unit{font-size:11px;color:var(--ts);margin-top:2px}
+.kpi-card.acc{border-color:rgba(167,139,250,.2);background:rgba(91,33,182,.07)}
+.kpi-card.acc .kpi-val{color:var(--acc3)}
+.kpi-card.gold{border-color:rgba(252,211,77,.2);background:rgba(252,211,77,.04)}
+.kpi-card.gold .kpi-val{color:var(--zh)}
+.kpi-card.green{border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.04)}
+.kpi-card.green .kpi-val{color:var(--ok2)}
+
+.mon-body{flex:1;overflow-y:auto;padding:0 18px 18px}
+.mon-body::-webkit-scrollbar{width:3px}
+.mon-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+.file-info{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:12px;display:flex;flex-direction:column;gap:6px}
+.fi-row{display:flex;gap:8px;align-items:baseline}
+.fi-key{color:var(--ts);width:100px;flex-shrink:0;font-size:11px}
+.fi-val{color:var(--tm);font-family:'JetBrains Mono',monospace;font-size:11px;word-break:break-all}
+.fi-val a{color:var(--acc3);text-decoration:underline}
+
+.pipe-table{width:100%;border-collapse:collapse;font-size:11px}
+.pipe-table th{text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--ts);border-bottom:1px solid var(--b1);position:sticky;top:0;background:var(--bg)}
+.pipe-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.pipe-table tr:hover td{background:rgba(255,255,255,.02)}
+.td-td-num{color:var(--ts);font-family:'JetBrains Mono',monospace}
+.td-dur{color:var(--info);font-family:'JetBrains Mono',monospace}
+.td-ms{color:var(--tm);font-family:'JetBrains Mono',monospace}
+.td-tok{color:var(--acc3);font-family:'JetBrains Mono',monospace}
+.td-text{color:var(--tp);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.step-pill{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:500}
+.step-pill.done{background:rgba(34,197,94,.1);color:var(--ok2)}
+
+/* ── Shared ──────────────────────────────────────────── */
+.toast-wrap{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:999}
+.toast{padding:8px 13px;border-radius:7px;font-size:12px;background:var(--card);border:1px solid var(--b2);color:var(--tp);max-width:280px;animation:fadeUp .2s;box-shadow:var(--shadow-sm)}
+.toast.err{border-color:rgba(239,68,68,.35);color:var(--rec2)}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(2px)}
+.overlay.show{display:flex}
+.confirm-box{background:var(--surf);border:1px solid var(--b2);border-radius:var(--r);padding:24px;max-width:340px;width:90%;box-shadow:var(--shadow)}
+.confirm-box h3{font-size:15px;margin-bottom:8px}
+.confirm-box p{font-size:12px;color:var(--ts);margin-bottom:18px;line-height:1.6}
+.confirm-btns{display:flex;gap:8px;justify-content:flex-end}
+.confirm-yes{padding:7px 16px;border-radius:5px;border:none;background:var(--rec);color:#fff;font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer}
+.confirm-no{padding:7px 16px;border-radius:5px;border:1px solid var(--b2);background:transparent;color:var(--tm);font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer}
+
+/* Project chips */
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:6px}
+.project-chip{cursor:pointer;padding:3px 9px;border-radius:4px;font-size:11px;border:1px solid var(--b1);background:var(--card);color:var(--ts);white-space:nowrap;transition:all .15s}
+.project-chip:hover{border-color:var(--b2);color:var(--tp)}
+.project-chip.active{border-color:var(--acc2);background:rgba(124,58,237,.12);color:var(--acc3)}
+
+/* Session meta info bar */
+.sd-meta-bar{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--ts);padding-top:6px}
+.sd-meta-bar span{display:flex;align-items:center;gap:4px}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP NAV ═══════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="logo"><div class="logo-dot"></div>MemoMe</div>
+  <button class="nav-btn active" id="nav-record"   onclick="showPage('record')">  <span class="nav-icon">⏺</span> Record</button>
+  <button class="nav-btn"        id="nav-sessions"  onclick="showPage('sessions')"><span class="nav-icon">📋</span> Sessions</button>
+  <button class="nav-btn"        id="nav-monitor"   onclick="showPage('monitor')"> <span class="nav-icon">📊</span> Monitor</button>
+  <div class="topbar-right">
+    <div class="badge" id="status-badge"><div class="bdot pulse"></div><span>Loading…</span></div>
+    <!-- Day / Night toggle -->
+    <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()" title="Switch day/night mode">
+      <span class="theme-icon" id="theme-icon">🌙</span>
+      <span class="theme-label" id="theme-label">Dark</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══ PAGE 1: RECORD ════════════════════════════════════════ -->
+<div class="page active" id="page-record">
+  <div class="rec-layout">
+
+    <!-- Sidebar -->
+    <aside class="rsidebar sb-panel" id="rsidebar">
+      <div class="rsb-top">
+        <!-- Meeting metadata -->
+        <div class="meta-form">
+          <div class="mf-label">Meeting details</div>
+          <input class="mf-input" id="mf-title"   placeholder="Title (optional)">
+          <input class="mf-input" id="mf-project"  placeholder="Project (optional)">
+          <input class="mf-input" id="mf-parts"    placeholder="Participants (optional)">
+          <div class="mf-label" style="margin-top:4px">Translate to</div>
+          <select class="lang-select" id="mf-target-lang" onchange="onTargetLangChange()">
+            <option value="Simplified Chinese">简体中文 (Simplified Chinese)</option>
+          </select>
+        </div>
+
+        <button class="rec-btn start" id="rec-btn" disabled onclick="toggleRecording()">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5"/></svg>
+          Start Recording
+        </button>
+
+        <div class="timer-row" id="timer-row">
+          <span style="font-size:11px;color:var(--ts)">Recording</span>
+          <span class="timer-val" id="timer-el">0:00:00</span>
+        </div>
+
+        <div class="drain-row" id="drain-row">
+          <span class="spin">⟳</span> Processing remaining audio…
+        </div>
+
+        <div class="q-panel" id="q-panel">
+          <div class="q-row"><span class="q-nm">Audio</span>  <div class="q-track"><div class="q-fill" id="qf-a" style="width:0%"></div></div><span class="q-n" id="qn-a">0</span></div>
+          <div class="q-row"><span class="q-nm">Whisper</span><div class="q-track"><div class="q-fill" id="qf-e" style="width:0%"></div></div><span class="q-n" id="qn-e">0</span></div>
+          <div class="q-row"><span class="q-nm">Ollama</span> <div class="q-track"><div class="q-fill" id="qf-z" style="width:0%"></div></div><span class="q-n" id="qn-z">0</span></div>
+        </div>
+      </div>
+
+      <!-- Recent Sessions — clicking goes to Sessions page -->
+      <div class="rsb-section-hdr">
+        <span>Recent Sessions</span>
+        <span class="rsb-view-all" onclick="showPage('sessions')">View all →</span>
+      </div>
+      <div class="rsb-list" id="rsb-list"></div>
+
+      <div class="rsb-foot" id="rsb-foot">
+        <div class="rsb-foot-row"><span>Whisper</span><span class="rsb-foot-val" id="rf-w">—</span></div>
+        <div class="rsb-foot-row"><span>Ollama</span> <span class="rsb-foot-val" id="rf-o">—</span></div>
+      </div>
+    </aside>
+
+    <!-- Sidebar collapse tab -->
+    <div class="sb-tab rsb-tab" id="rec-sidebar-toggle" onclick="toggleSidebar('rec')" title="Toggle sidebar">
+      <svg viewBox="0 0 8 12"><path d="M6 0L1 6l5 6"/></svg>
+    </div>
+
+    <!-- Main transcript area -->
+    <div class="rmain">
+      <div class="rtoolbar">
+        <div class="rtb-left" id="rtb-label">No active session — ready to start</div>
+        <div class="rtb-right">
+          <button class="sm-btn" onclick="copyAll()">Copy</button>
+          <button class="sm-btn" onclick="exportCurrent()">Export ↓</button>
+        </div>
+      </div>
+      <div class="col-hdr">
+        <div></div>
+        <div class="ch-en" id="col-source">Source</div>
+        <div class="ch-zh" id="col-target">Translation</div>
+      </div>
+      <div class="feed" id="feed">
+        <div class="empty" id="feed-empty">
+          <div class="empty-icon">🎙</div>
+          <h2>Ready to transcribe</h2>
+          <p>Fill in meeting details on the left, then press <strong>Start Recording</strong>.</p>
+        </div>
+      </div>
+      <div class="rfooter">
+        <div class="rfstats">
+          <div class="rfstat">Chunks: <span id="rfc">0</span></div>
+          <div class="rfstat">Session: <span id="rfs">—</span></div>
+        </div>
+        <div>MemoMe v2 · local &amp; private</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE 2: SESSIONS ══════════════════════════════════════ -->
+<div class="page" id="page-sessions">
+  <div class="sessions-layout">
+
+    <!-- Session list sidebar -->
+    <div class="sess-list-col sb-panel" id="sess-sidebar">
+      <div class="slc-header">
+        <input class="slc-search" id="sess-search" placeholder="Search title, project, participants…" oninput="filterSessions()">
+        <div class="filter-row">
+          <select id="f-status" class="filter-sel" onchange="filterSessions()">
+            <option value="">All statuses</option>
+            <option value="unreviewed">Unreviewed</option>
+            <option value="reviewed">✓ Reviewed</option>
+            <option value="flagged">⚑ Flagged</option>
+          </select>
+          <select id="f-sort" class="filter-sel" onchange="filterSessions()">
+            <option value="date_desc">Newest first</option>
+            <option value="date_asc">Oldest first</option>
+            <option value="project">By project</option>
+            <option value="chunks_desc">Most chunks</option>
+          </select>
+        </div>
+        <div class="chip-row" id="project-chips"></div>
+      </div>
+      <div class="sess-count" id="sess-count">0 sessions</div>
+      <div class="sess-cards" id="sess-cards"></div>
+    </div>
+
+    <!-- Sidebar collapse tab -->
+    <div class="sb-tab sess-tab" id="sess-sidebar-toggle" onclick="toggleSidebar('sess')" title="Toggle sidebar">
+      <svg viewBox="0 0 8 12"><path d="M6 0L1 6l5 6"/></svg>
+    </div>
+
+    <!-- Detail panel -->
+    <div class="sess-detail" id="sess-detail">
+      <div class="sd-empty">← Select a session to view details</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE 3: MONITOR ═══════════════════════════════════════ -->
+<div class="page" id="page-monitor">
+  <div class="mon-layout">
+
+    <!-- Monitor sidebar -->
+    <div class="mon-sidebar sb-panel" id="mon-sidebar">
+      <div class="mon-list-hdr">Sessions</div>
+      <div class="mon-list" id="mon-list"></div>
+    </div>
+
+    <!-- Sidebar collapse tab -->
+    <div class="sb-tab mon-tab" id="mon-sidebar-toggle" onclick="toggleSidebar('mon')" title="Toggle sidebar">
+      <svg viewBox="0 0 8 12"><path d="M6 0L1 6l5 6"/></svg>
+    </div>
+
+    <div class="mon-main" id="mon-main">
+      <div class="mon-empty">← Select a session to view pipeline stats</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ CONFIRM DIALOG ════════════════════════════════════════ -->
+<div class="overlay" id="overlay">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Delete session?</h3>
+    <p id="confirm-msg">This will permanently delete the transcript, chunks and audio file. This cannot be undone.</p>
+    <div class="confirm-btns">
+      <button class="confirm-no"  onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-yes" id="confirm-yes-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  UTILITIES — declared first so every function below can call them
+//  (const is NOT hoisted — must appear before any caller)
+// ══════════════════════════════════════════════════════
+const esc   = s   => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const v     = id  => document.getElementById(id)?.value || '';
+const show  = id  => { const e = document.getElementById(id); if (e) e.classList.add('show'); };
+const hide  = id  => { const e = document.getElementById(id); if (e) e.classList.remove('show'); };
+const setEl = (id, prop, val) => { const e = document.getElementById(id); if (e) e[prop] = val; };
+// ══════════════════════════════════════════════════════
+//  THEME — Day / Night
+// ══════════════════════════════════════════════════════
+let _theme = localStorage.getItem('memome-theme') || 'dark';
+
+function applyTheme(t) {
+  _theme = t;
+  const isLight = t === 'light';
+  document.documentElement.classList.toggle('light', isLight);
+  const icon  = document.getElementById('theme-icon');
+  const label = document.getElementById('theme-label');
+  if (icon)  icon.textContent  = isLight ? '☀️' : '🌙';
+  if (label) label.textContent = isLight ? 'Light' : 'Dark';
+  localStorage.setItem('memome-theme', t);
+}
+
+function toggleTheme() {
+  applyTheme(_theme === 'dark' ? 'light' : 'dark');
+}
+
+// Apply immediately (before DOM renders)
+applyTheme(_theme);
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let STATE = 'idle';          // idle | recording | draining | viewing
+let currentTargetLang = 'Simplified Chinese';
+let meetingId   = null;
+let ws          = null;
+let timerInterval  = null;
+let startEpoch     = null;
+let statusPoll     = null;
+let totalChunks    = 0;
+let viewEntries    = [];
+const DOM_CAP      = 300;
+let domCount       = 0;
+let hiddenCount    = 0;
+let allSessions    = [];
+let _cachedLangs   = [];
+let _currentDetailId = null;
+const _transcriptState = {};
+
+// ══════════════════════════════════════════════════════
+//  SIDEBAR COLLAPSE — universal
+// ══════════════════════════════════════════════════════
+/*
+  Each sidebar has:
+    - a .sb-panel element (the sidebar)
+    - a .sb-tab element (the toggle tab)
+  When collapsed:
+    - sb-panel gets class 'collapsed' → width:0
+    - sb-tab arrow flips to point right (expand)
+    - sb-tab moves to left:0
+*/
+const _sidebarCfg = {
+  rec:  { panel: () => document.getElementById('rsidebar'),       tab: () => document.getElementById('rec-sidebar-toggle'),  expandedLeft: '252px' },
+  sess: { panel: () => document.getElementById('sess-sidebar'),   tab: () => document.getElementById('sess-sidebar-toggle'), expandedLeft: '290px' },
+  mon:  { panel: () => document.getElementById('mon-sidebar'),    tab: () => document.getElementById('mon-sidebar-toggle'),  expandedLeft: '250px' },
+};
+
+function toggleSidebar(key) {
+  const cfg = _sidebarCfg[key];
+  if (!cfg) return;
+  const panel = cfg.panel();
+  const tab   = cfg.tab();
+  if (!panel) return;
+  const collapsed = panel.classList.toggle('collapsed');
+  if (tab) {
+    // Flip the chevron direction
+    const svg = tab.querySelector('svg path');
+    if (svg) svg.setAttribute('d', collapsed ? 'M2 0L7 6 2 12' : 'M6 0L1 6l5 6');
+    tab.style.left = collapsed ? '0' : cfg.expandedLeft;
+    tab.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  }
+  localStorage.setItem('sidebar-' + key, collapsed ? '1' : '0');
+}
+
+function restoreSidebars() {
+  for (const [key, cfg] of Object.entries(_sidebarCfg)) {
+    if (localStorage.getItem('sidebar-' + key) === '1') {
+      const panel = cfg.panel();
+      const tab   = cfg.tab();
+      if (!panel) continue;
+      panel.classList.add('collapsed');
+      if (tab) {
+        const svg = tab.querySelector('svg path');
+        if (svg) svg.setAttribute('d', 'M2 0L7 6 2 12');
+        tab.style.left = '0';
+      }
+    } else {
+      const tab = cfg.tab();
+      if (tab) tab.style.left = cfg.expandedLeft;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'sessions') loadSessionsPage(true);
+  if (name === 'monitor')  loadMonitorList(true);
+}
+
+// ══════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════
+(async () => {
+  // Start with a completely blank record feed
+  clearFeed();
+  restoreSidebars();
+
+  const s = await loadStatus();
+  await loadLanguages();
+  await loadRecentSessions();
+  setInterval(loadRecentSessions, 12000);
+
+  // Reconnect if a recording was active before page load
+  if (s && s.active_id && s.active_sessions > 0) {
+    console.log('[Boot] Reconnecting to active session:', s.active_id);
+    meetingId  = s.active_id;
+    STATE      = 'recording';
+    startEpoch = Date.now();
+    enterRecordingUI({ created_at: new Date().toISOString() });
+    connectWS(meetingId);
+    startStatusPoll();
+    toast('Reconnected to active session');
+  }
+})();
+
+async function loadLanguages() {
+  try {
+    const data = await api('GET', '/api/languages');
+    _cachedLangs = data.languages;
+    const sel = document.getElementById('mf-target-lang');
+    if (sel) {
+      sel.innerHTML = data.languages.map(l =>
+        `<option value="${esc(l.code)}" ${l.code === 'Simplified Chinese' ? 'selected' : ''}>${esc(l.label)}</option>`
+      ).join('');
+      currentTargetLang = sel.value;
+    }
+  } catch {}
+}
+
+function onTargetLangChange() {
+  const sel = document.getElementById('mf-target-lang');
+  currentTargetLang = sel.value;
+  const colTarget = document.getElementById('col-target');
+  if (colTarget) colTarget.textContent = currentTargetLang.replace('Simplified ', '').replace('Traditional ', '');
+  if (STATE === 'recording' && meetingId) {
+    api('PATCH', `/api/sessions/${meetingId}/target_lang`, { target_lang: currentTargetLang }).catch(() => {});
+  }
+}
+
+async function loadStatus() {
+  try {
+    const s = await api('GET', '/api/status');
+    setEl('rf-w', 'textContent', s.whisper_loading ? 'loading…' : (s.whisper_model || 'not loaded'));
+    setEl('rf-o', 'textContent', s.ollama_model || '—');
+    applyStatusBadge(s);
+    return s;
+  } catch {
+    setBadge('err', 'Offline', false);
+    return null;
+  }
+}
+
+function applyStatusBadge(s) {
+  if (STATE === 'recording') { setBadge('rec', 'Recording', true);   return; }
+  if (STATE === 'draining')  { setBadge('wait', 'Processing…', true); return; }
+  if (s.whisper_loading) {
+    setBadge('wait', 'Loading model…', true);
+    recBtn().disabled = true;
+    recBtn().innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5"/></svg> Loading model…';
+    setTimeout(loadStatus, 2000);
+    return;
+  }
+  if (!s.whisper_loaded) { setBadge('err', 'Whisper not installed', false); recBtn().disabled = true; return; }
+  if (!s.audio_available){ setBadge('err', 'No audio device', false);       recBtn().disabled = true; return; }
+  setBadge('ok', 'Ready', false);
+  recBtn().disabled = false;
+  if (recBtn().textContent.includes('Loading')) {
+    recBtn().className = 'rec-btn start';
+    recBtn().innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5"/></svg> Start Recording';
+  }
+}
+
+function setBadge(cls, label, pulse) {
+  const b = document.getElementById('status-badge');
+  b.className = 'badge ' + cls;
+  b.innerHTML = `<div class="bdot${pulse ? ' pulse' : ''}"></div><span>${label}</span>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  RECORDING
+// ══════════════════════════════════════════════════════
+function recBtn() { return document.getElementById('rec-btn'); }
+
+async function toggleRecording() {
+  if (STATE === 'recording') await doStop();
+  else await doStart();
+}
+
+async function doStart() {
+  recBtn().disabled = true;
+  const body = {
+    title:        v('mf-title'),
+    project:      v('mf-project'),
+    participants: v('mf-parts'),
+    target_lang:  currentTargetLang,
+  };
+  try {
+    const data = await api('POST', '/api/start', body);
+    meetingId  = data.meeting_id;
+    // ── Clear feed completely before the new session starts ──
+    clearFeed();
+    STATE      = 'recording';
+    startEpoch = Date.now();
+    enterRecordingUI(data);
+    connectWS(meetingId);
+    startStatusPoll();
+    loadRecentSessions();
+    toast('Recording started');
+  } catch (e) {
+    toast(e.message || 'Failed to start', true);
+    recBtn().disabled = false;
+  }
+}
+
+async function doStop() {
+  if (!meetingId) return;
+  recBtn().disabled = true;
+  try { await api('POST', `/api/stop/${meetingId}`); } catch {}
+  STATE = 'draining';
+  stopTimer();
+  stopStatusPoll();
+  show('drain-row');
+  show('q-panel');
+  recBtn().className = 'rec-btn start';
+  recBtn().innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5"/></svg> Start Recording`;
+  setBadge('wait', 'Processing…', true);
+  setEl('rtb-label', 'textContent', `Processing remaining audio…`);
+  startStatusPoll();
+  loadRecentSessions();
+}
+
+function enterRecordingUI(data) {
+  recBtn().className = 'rec-btn stop';
+  recBtn().innerHTML = `<svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect x="2" y="2" width="8" height="8" rx="1"/></svg> Stop Recording`;
+  recBtn().disabled  = false;
+  show('timer-row');
+  show('q-panel');
+  hide('drain-row');
+  setBadge('rec', 'Recording', true);
+  setEl('rtb-label', 'textContent', `Live — ${v('mf-title') || 'New recording'}`);
+  setEl('rfs', 'textContent', meetingId.slice(0, 8));
+  startTimer();
+}
+
+function enterIdleUI() {
+  STATE = 'idle';
+  hide('timer-row');
+  hide('drain-row');
+  hide('q-panel');
+  recBtn().disabled  = false;
+  recBtn().className = 'rec-btn start';
+  recBtn().innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5"/></svg> Start Recording`;
+  setBadge('ok', 'Ready', false);
+  setEl('rtb-label', 'textContent', 'Session complete — clearing in 5s…');
+  stopStatusPoll();
+  updateQueues({ audio: 0, english: 0, chinese: 0 });
+
+  // Clear feed after 5 seconds so user can read last chunks
+  setTimeout(() => {
+    if (STATE !== 'idle') return;
+    clearFeed();
+    setEl('rtb-label', 'textContent', 'No active session — ready to start');
+    meetingId = null;
+  }, 5000);
+}
+
+function clearFeed() {
+  viewEntries = []; totalChunks = 0; domCount = 0; hiddenCount = 0;
+  document.querySelectorAll('#feed .entry, #feed .trunc-notice').forEach(e => e.remove());
+  show('feed-empty');
+  setEl('rfc', 'textContent', '0');
+  setEl('rfs', 'textContent', '—');
+}
+
+// Timer
+function startTimer() {
+  stopTimer();
+  timerInterval = setInterval(() => {
+    const s   = Math.floor((Date.now() - startEpoch) / 1000);
+    const h   = Math.floor(s / 3600);
+    const m   = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    setEl('timer-el', 'textContent', `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`);
+  }, 1000);
+}
+function stopTimer() { clearInterval(timerInterval); }
+
+// Status poll
+function startStatusPoll() {
+  stopStatusPoll();
+  statusPoll = setInterval(async () => {
+    try {
+      const s = await api('GET', '/api/status');
+      updateQueues(s.queues);
+      if (STATE === 'draining') {
+        const tot = (s.queues.audio || 0) + (s.queues.english || 0) + (s.queues.chinese || 0);
+        if (tot === 0) setTimeout(() => { if (STATE === 'draining') enterIdleUI(); }, 3000);
+      }
+    } catch {}
+  }, 2000);
+}
+function stopStatusPoll() { clearInterval(statusPoll); }
+
+function updateQueues(q) {
+  const set = (fid, nid, val, max) => {
+    const fe = document.getElementById(fid); if (fe) fe.style.width = Math.min(100, (val / max) * 100) + '%';
+    const ne = document.getElementById(nid); if (ne) ne.textContent = val;
+  };
+  set('qf-a', 'qn-a', q.audio   || 0, 30);
+  set('qf-e', 'qn-e', q.english || 0, 60);
+  set('qf-z', 'qn-z', q.chinese || 0, 60);
+}
+
+// ══════════════════════════════════════════════════════
+//  WEBSOCKET
+// ══════════════════════════════════════════════════════
+function connectWS(id) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/${id}`);
+  ws.onmessage = e => {
+    if (e.data === 'pong') return;
+    let msg; try { msg = JSON.parse(e.data); } catch { return; }
+    if      (msg.type === 'history')      msg.chunks.forEach(c => addEntry(c, true));
+    else if (msg.type === 'chunk')        addEntry(msg.data, false);
+    else if (msg.type === 'drained')      { enterIdleUI(); toast(`Done — ${totalChunks} chunks. Generating summary…`); loadRecentSessions(); }
+    else if (msg.type === 'summary_ready') {
+      toast('✦ AI summary ready');
+      if (_currentDetailId === msg.meeting_id) openSessionDetail(msg.meeting_id, null);
+      loadRecentSessions();
+    }
+    else if (msg.type === 'error')        toast(msg.message, true);
+  };
+  ws.onerror = () => toast('WebSocket error', true);
+  const ping = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send('ping');
+    else clearInterval(ping);
+  }, 25000);
+}
+
+// ══════════════════════════════════════════════════════
+//  TRANSCRIPT FEED (Record page)
+// ══════════════════════════════════════════════════════
+function addEntry(data, isHistory) {
+  viewEntries.push(data);
+  totalChunks++;
+  setEl('rfc', 'textContent', totalChunks);
+  hide('feed-empty');
+
+  if (domCount >= DOM_CAP) {
+    const oldest = document.querySelector('#feed .entry');
+    if (oldest) { oldest.remove(); domCount--; hiddenCount++; }
+    let notice = document.querySelector('#feed .trunc-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.className = 'trunc-notice';
+      notice.onclick = exportCurrent;
+      document.getElementById('feed').insertBefore(notice, document.getElementById('feed').firstChild);
+    }
+    notice.textContent = `↑ ${hiddenCount} earlier entries hidden — Export ↓ for full transcript`;
+  }
+
+  const ts    = data.timestamp || new Date().toISOString();
+  const idx   = viewEntries.length;
+  const d     = document.createElement('div');
+  d.className = 'entry';
+  const srcLang    = data.source_lang || 'en';
+  const translated = data.translated  || data.chinese || '';
+  const langBadge  = `<span class="lang-badge">${esc(srcLang.toUpperCase())}</span> `;
+  d.innerHTML = `
+    <div class="e-time"><span class="e-idx">#${idx}</span>${fmtTime(ts)}</div>
+    <div class="e-en">${langBadge}${esc(data.english)}</div>
+    <div class="e-zh">${esc(translated)}</div>`;
+  document.getElementById('feed').appendChild(d);
+  domCount++;
+  if (!isHistory) document.getElementById('feed').scrollTop = 99999;
+}
+
+// ══════════════════════════════════════════════════════
+//  RECENT SESSIONS SIDEBAR (Record page)
+//  Items are navigation links → Sessions page detail
+// ══════════════════════════════════════════════════════
+async function loadRecentSessions() {
+  try {
+    const list = await api('GET', '/api/sessions');
+    allSessions = list;
+    const el = document.getElementById('rsb-list');
+    el.innerHTML = '';
+    if (!list.length) {
+      el.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:var(--ts)">No sessions yet</div>';
+      return;
+    }
+    list.slice(0, 20).forEach(s => {
+      const d = document.createElement('div');
+      d.className = 'rsb-item';
+      const live = !s.ended_at
+        ? '&nbsp;<span class="rsi-badge" style="background:rgba(239,68,68,.1);color:var(--rec2)">live</span>' : '';
+      const rev = s.review_status === 'reviewed'
+        ? '<span class="rsi-badge reviewed">✓</span>'
+        : s.review_status === 'flagged'
+        ? '<span class="rsi-badge flagged">!</span>' : '';
+      d.innerHTML = `
+        <div class="rsb-item-info">
+          <div class="rsi-title">${esc(s.title || 'Untitled')}${live}${rev}</div>
+          <div class="rsi-sub">${fmtDate(s.created_at)} · ${s.chunk_count} chunks</div>
+        </div>
+        <span class="rsb-item-arrow">›</span>`;
+      // Click → navigate directly to Sessions page and open this session's detail
+      d.onclick = () => {
+        showPage('sessions');
+        setTimeout(() => {
+          const card = document.querySelector(`.sess-card[data-id="${s.id}"]`);
+          openSessionDetail(s.id, card);
+        }, 120);
+      };
+      el.appendChild(d);
+    });
+  } catch {}
+}
+
+// ══════════════════════════════════════════════════════
+//  PAGE 2: SESSIONS
+// ══════════════════════════════════════════════════════
+function filterSessions() {
+  const q      = v('sess-search').toLowerCase();
+  const status = document.getElementById('f-status')?.value || '';
+  const sort   = document.getElementById('f-sort')?.value   || 'date_desc';
+  const chip   = window._activeProjectChip || '';
+
+  let filtered = allSessions.filter(s => {
+    const matchQ = !q ||
+      (s.title || '').toLowerCase().includes(q) ||
+      (s.project || '').toLowerCase().includes(q) ||
+      (s.participants || '').toLowerCase().includes(q) ||
+      s.id.toLowerCase().includes(q);
+    const matchStatus = !status || (s.review_status || 'unreviewed') === status;
+    const matchChip   = !chip   || (s.project || '') === chip;
+    return matchQ && matchStatus && matchChip;
+  });
+
+  if (sort === 'date_asc')         filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  else if (sort === 'project')     filtered.sort((a, b) => (a.project || '').localeCompare(b.project || ''));
+  else if (sort === 'chunks_desc') filtered.sort((a, b) => (b.chunk_count || 0) - (a.chunk_count || 0));
+  else                             filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  renderSessCards(filtered);
+  renderProjectChips(allSessions, chip);
+}
+
+function renderProjectChips(sessions, active) {
+  const el = document.getElementById('project-chips');
+  if (!el) return;
+  const projects = [...new Set(sessions.map(s => s.project).filter(Boolean))].slice(0, 8);
+  el.innerHTML = projects.map(p => {
+    const sel = p === active;
+    return `<span class="project-chip ${sel ? 'active' : ''}" onclick="setProjectChip(${JSON.stringify(p)})">📁 ${esc(p)}</span>`;
+  }).join('');
+}
+
+function setProjectChip(p) {
+  window._activeProjectChip = (window._activeProjectChip === p) ? '' : p;
+  filterSessions();
+}
+
+async function loadSessionsPage(autoOpen = false) {
+  try {
+    allSessions = await api('GET', '/api/sessions');
+    filterSessions();
+    // ── Auto-open the most recent session ────────────────────────
+    if (autoOpen && allSessions.length && !_currentDetailId) {
+      setTimeout(() => {
+        const first = allSessions[0];
+        const card  = document.querySelector('.sess-card');
+        if (card) openSessionDetail(first.id, card);
+      }, 80);
+    }
+  } catch {}
+}
+
+function renderSessCards(list) {
+  const el = document.getElementById('sess-cards');
+  document.getElementById('sess-count').textContent = `${list.length} session${list.length !== 1 ? 's' : ''}`;
+  el.innerHTML = '';
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--ts)">No sessions found</div>';
+    return;
+  }
+  list.forEach(s => {
+    const d = document.createElement('div');
+    d.className    = 'sess-card' + (s.id === _currentDetailId ? ' selected' : '');
+    d.dataset.id   = s.id;
+    const revCls   = s.review_status || 'unreviewed';
+    const revLabel = { reviewed: '✓ Reviewed', unreviewed: 'Unreviewed', flagged: '⚑ Flagged' }[revCls] || revCls;
+    d.innerHTML = `
+      <div class="sc-title">${esc(s.title || 'Untitled meeting')}</div>
+      <div class="sc-meta">
+        <span>${s.project ? '📁 ' + esc(s.project) : 'No project'}</span>
+        <span>${fmtDate(s.created_at)}</span>
+        ${s.total_duration_sec ? `<span>⏱ ${fmtDur(s.total_duration_sec)}</span>` : ''}
+      </div>
+      <div class="sc-footer">
+        <span class="sc-status ${revCls}">${revLabel}</span>
+        <span class="sc-chunks">${s.chunk_count} chunks</span>
+      </div>`;
+    d.onclick = () => openSessionDetail(s.id, d);
+    el.appendChild(d);
+  });
+}
+
+async function openSessionDetail(id, cardEl) {
+  _currentDetailId = id;
+  document.querySelectorAll('.sess-card').forEach(c => c.classList.remove('selected'));
+  if (cardEl) cardEl.classList.add('selected');
+  try {
+    const s = await api('GET', `/api/sessions/${id}`);
+    renderSessionDetail(s);
+  } catch { toast('Failed to load session', true); }
+}
+
+// ── Full session detail with audio + complete transcript ───────
+function renderSessionDetail(s) {
+  const sd = document.getElementById('sess-detail');
+  const audioHtml = s.audio_path
+    ? `<div class="audio-wrap"><audio controls src="/${s.audio_path.replace(/\\/g, '/')}"></audio></div>`
+    : `<div class="no-audio">No audio recording saved for this session.</div>`;
+
+  sd.innerHTML = `
+    <div class="sd-toolbar">
+      <div class="sd-title-big">${esc(s.title || 'Untitled meeting')}</div>
+      <select class="status-select" id="sd-status" onchange="saveReview('${s.id}')">
+        <option value="unreviewed" ${s.review_status === 'unreviewed' ? 'selected' : ''}>Unreviewed</option>
+        <option value="reviewed"   ${s.review_status === 'reviewed'   ? 'selected' : ''}>✓ Reviewed</option>
+        <option value="flagged"    ${s.review_status === 'flagged'    ? 'selected' : ''}>⚑ Flagged</option>
+      </select>
+      <select class="status-select" id="sd-target-lang" title="Translation language" onchange="saveLang('${s.id}')">
+        ${langOptions(s.target_lang)}
+      </select>
+      <button class="icon-btn" title="Export TXT" onclick="window.open('/api/sessions/${s.id}/export?fmt=txt','_blank')">↓</button>
+      <button class="icon-btn" title="Export JSON" onclick="window.open('/api/sessions/${s.id}/export?fmt=json','_blank')">{ }</button>
+      <button class="icon-btn danger" title="Delete" onclick="confirmDelete('${s.id}')">🗑</button>
+    </div>
+
+    <div class="sd-body">
+
+      <!-- Meeting details -->
+      <div class="sd-section">
+        <div class="sd-section-title">
+          Meeting details
+          <button class="save-btn" onclick="saveMeta('${s.id}')">Save</button>
+        </div>
+        <div class="field-grid">
+          <div class="field-group">
+            <div class="field-label">Title</div>
+            <input class="field-input" id="sd-title" value="${esc(s.title || '')}" placeholder="Meeting title">
+          </div>
+          <div class="field-group">
+            <div class="field-label">Project</div>
+            <input class="field-input" id="sd-project" value="${esc(s.project || '')}" placeholder="Project name">
+          </div>
+          <div class="field-group full">
+            <div class="field-label">Participants</div>
+            <input class="field-input" id="sd-parts" value="${esc(s.participants || '')}" placeholder="Alice, Bob, Carol…">
+          </div>
+        </div>
+        <div class="sd-meta-bar">
+          <span>🆔 <span style="font-family:'JetBrains Mono',monospace">${s.id.slice(0, 16)}…</span></span>
+          <span>📅 ${fmtDate(s.created_at)}</span>
+          ${s.total_duration_sec ? `<span>⏱ ${fmtDur(s.total_duration_sec)}</span>` : ''}
+          <span>📝 ${s.chunk_count} chunks</span>
+        </div>
+      </div>
+
+      <!-- Audio recording -->
+      <div class="sd-section">
+        <div class="sd-section-title">Audio recording</div>
+        ${audioHtml}
+      </div>
+
+      <!-- AI Summary -->
+      <div class="sd-section">
+        <div class="sd-section-title">
+          AI Summary
+          <button class="sum-btn" id="sum-btn-${s.id}" onclick="runSummarize('${s.id}')">
+            <span>✦</span> ${s.summary ? 'Regenerate' : 'Generate'}
+          </button>
+        </div>
+        <div class="sum-box ${s.summary ? '' : 'empty-msg'}" id="sum-box-${s.id}">
+          ${s.summary ? esc(s.summary) : 'Click Generate to analyse this meeting with Ollama.'}
+        </div>
+      </div>
+
+      <!-- Tasks & Decisions -->
+      <div class="sd-section">
+        <div class="sd-section-title">Action items &amp; decisions</div>
+        <div class="tasks-box ${s.tasks ? '' : 'empty-msg'}" id="tasks-box-${s.id}">
+          ${s.tasks ? esc(s.tasks) : 'Tasks and decisions will appear here after generating a summary.'}
+        </div>
+      </div>
+
+      <!-- Full Transcript -->
+      <div class="sd-section">
+        <div class="sd-section-title">
+          Full transcript
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="sm-btn" id="load-more-btn-${s.id}" onclick="loadMoreTranscript('${s.id}',this)" style="display:none">Load more</button>
+            <button class="sm-btn" onclick="window.open('/api/sessions/${s.id}/export?fmt=txt','_blank')">Export ↓</button>
+          </div>
+        </div>
+        <div class="transcript-wrap">
+          <div class="transcript-table-wrap" id="transcript-${s.id}">
+            <div style="padding:14px;font-size:13px;color:var(--ts)">Loading transcript…</div>
+          </div>
+          <div class="transcript-footer" id="transcript-footer-${s.id}">
+            <span></span>
+          </div>
+        </div>
+      </div>
+
+    </div>`;
+
+  loadFullTranscript(s.id);
+}
+
+// ── Full transcript loader ─────────────────────────────────────
+async function loadFullTranscript(id, reset) {
+  if (reset === undefined) reset = true;
+  const wrap = document.getElementById('transcript-' + id);
+  if (!wrap) return;
+
+  if (reset) {
+    _transcriptState[id] = { offset: 0, total: 0 };
+    wrap.innerHTML = '<div style="padding:14px;font-size:13px;color:var(--ts)">Loading…</div>';
+  }
+
+  const state = _transcriptState[id];
+  const LIMIT = 100;
+  try {
+    const resp = await api('GET', `/api/sessions/${id}/chunks?offset=${state.offset}&limit=${LIMIT}`);
+    state.total = resp.total;
+
+    if (reset) {
+      if (!resp.chunks.length) {
+        wrap.innerHTML = '<div style="padding:16px;font-size:13px;color:var(--ts)">No transcript yet.</div>';
+        return;
+      }
+      // Build table with full text — NO truncation or ellipsis
+      wrap.innerHTML = `
+        <table class="transcript-table">
+          <thead>
+            <tr>
+              <th style="width:36px">#</th>
+              <th style="width:40%">Source</th>
+              <th style="width:40%">Translation</th>
+              <th>Lang</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-${id}"></tbody>
+        </table>`;
+    }
+
+    const tbody = document.getElementById('tbody-' + id);
+    if (!tbody) return;
+
+    resp.chunks.forEach((c, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-num">${state.offset + i + 1}</td>
+        <td class="td-src">${esc(c.english)}</td>
+        <td class="td-tgt">${esc(c.chinese)}</td>
+        <td class="td-lang">${esc((c.source_lang || 'en').toUpperCase())}</td>
+        <td class="td-ts">${fmtTime(c.timestamp || '')}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    state.offset += resp.chunks.length;
+
+    // Update footer
+    const footer = document.getElementById('transcript-footer-' + id);
+    if (footer) footer.innerHTML = `<span>${state.offset} of ${state.total} chunks</span><span></span>`;
+
+    // Show / update "Load more" button
+    const moreBtn = document.getElementById('load-more-btn-' + id);
+    if (moreBtn) {
+      const hasMore   = state.offset < state.total;
+      moreBtn.style.display = hasMore ? '' : 'none';
+      moreBtn.textContent   = `Load more (${state.total - state.offset} remaining) ↓`;
+    }
+
+    // Scroll newly loaded rows into view (only on initial load)
+    if (reset) wrap.scrollTop = 0;
+
+  } catch {
+    wrap.innerHTML = '<div style="padding:14px;font-size:13px;color:var(--ts)">Failed to load transcript.</div>';
+  }
+}
+
+async function loadMoreTranscript(id, btn) {
+  if (btn) btn.disabled = true;
+  await loadFullTranscript(id, false);
+  if (btn) btn.disabled = false;
+}
+
+// ── Session detail actions ────────────────────────────────────
+async function saveMeta(id) {
+  try {
+    await api('PATCH', `/api/sessions/${id}/metadata`, {
+      title:        v('sd-title'),
+      project:      v('sd-project'),
+      participants: v('sd-parts'),
+    });
+    toast('Saved');
+    loadRecentSessions();
+    loadSessionsPage();
+  } catch (e) { toast(e.message || 'Save failed', true); }
+}
+
+async function saveReview(id) {
+  const status = document.getElementById('sd-status')?.value;
+  try {
+    await api('PATCH', `/api/sessions/${id}/review`, { status });
+    toast('Status updated');
+    loadRecentSessions();
+    loadSessionsPage();
+  } catch (e) { toast(e.message || 'Failed', true); }
+}
+
+async function saveLang(id) {
+  const sel = document.getElementById('sd-target-lang');
+  if (!sel) return;
+  try {
+    await api('PATCH', `/api/sessions/${id}/target_lang`, { target_lang: sel.value });
+    toast(`Translation language set to ${sel.value}`);
+  } catch (e) { toast(e.message || 'Failed', true); }
+}
+
+async function runSummarize(id) {
+  const btn = document.getElementById(`sum-btn-${id}`);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin">⟳</span> Analysing…'; }
+  try {
+    const r  = await api('POST', `/api/sessions/${id}/summarize`);
+    const sb = document.getElementById(`sum-box-${id}`);
+    const tb = document.getElementById(`tasks-box-${id}`);
+    if (sb) { sb.classList.remove('empty-msg'); sb.textContent = r.summary || 'No summary generated.'; }
+    if (tb) { tb.classList.remove('empty-msg'); tb.textContent = r.tasks   || 'No action items identified.'; }
+    toast('Summary generated');
+  } catch (e) { toast(e.message || 'Summary failed', true); }
+  finally { if (btn) { btn.disabled = false; btn.innerHTML = '<span>✦</span> Regenerate'; } }
+}
+
+function confirmDelete(id) {
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('confirm-yes-btn').onclick = async () => {
+    closeConfirm();
+    try {
+      await api('DELETE', `/api/sessions/${id}`);
+      toast('Session deleted');
+      document.getElementById('sess-detail').innerHTML = '<div class="sd-empty">← Select a session to view details</div>';
+      _currentDetailId = null;
+      if (id === meetingId) { meetingId = null; STATE = 'idle'; enterIdleUI(); }
+      await loadSessionsPage();
+      await loadRecentSessions();
+    } catch (e) { toast(e.message || 'Delete failed', true); }
+  };
+}
+function closeConfirm() { document.getElementById('overlay').classList.remove('show'); }
+
+// ══════════════════════════════════════════════════════
+//  PAGE 3: MONITOR
+//  Auto-opens the most recent session
+// ══════════════════════════════════════════════════════
+async function loadMonitorList(autoOpen = false) {
+  try {
+    const list = await api('GET', '/api/sessions');
+    const el   = document.getElementById('mon-list');
+    el.innerHTML = '';
+    let firstItem = null;
+    list.forEach((s, i) => {
+      const d = document.createElement('div');
+      d.className   = 'mon-item';
+      d.innerHTML   = `
+        <div class="mi-title">${esc(s.title || 'Untitled')}</div>
+        <div class="mi-sub">${fmtDate(s.created_at)} · ${s.chunk_count} chunks</div>`;
+      d.onclick = () => loadMonitorDetail(s.id, d);
+      el.appendChild(d);
+      if (i === 0) firstItem = d;
+    });
+    // ── Auto-open most recent session ────────────────────────────
+    if (autoOpen && list.length && firstItem) {
+      firstItem.classList.add('selected');
+      loadMonitorDetail(list[0].id, firstItem);
+    }
+  } catch {}
+}
+
+async function loadMonitorDetail(id, itemEl) {
+  document.querySelectorAll('.mon-item').forEach(i => i.classList.remove('selected'));
+  if (itemEl) itemEl.classList.add('selected');
+  try {
+    const data = await api('GET', `/api/sessions/${id}/monitor`);
+    renderMonitor(data);
+  } catch { toast('Failed to load monitor', true); }
+}
+
+function renderMonitor(data) {
+  const s  = data.session;
+  const t  = data.totals;
+  const cc = data.chunk_count;
+  const mm = document.getElementById('mon-main');
+  const audioLink = s.audio_path
+    ? `<a href="/${s.audio_path.replace(/\\/g, '/')}" target="_blank">${s.audio_path}</a>` : '—';
+  const avgWms = cc ? Math.round(t.whisper_ms / cc) : 0;
+  const avgOms = cc ? Math.round(t.ollama_ms  / cc) : 0;
+
+  mm.innerHTML = `
+    <div class="mon-header">
+      <div class="mon-title">${esc(s.title || 'Untitled meeting')}</div>
+      <div class="mon-sub">${s.id.slice(0, 16)}… · ${fmtDate(s.created_at)} · ${cc} chunks</div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card acc">
+        <div class="kpi-label">Total tokens</div>
+        <div class="kpi-val">${fmtNum(t.total_tokens)}</div>
+        <div class="kpi-unit">whisper + ollama (estimated)</div>
+      </div>
+      <div class="kpi-card gold">
+        <div class="kpi-label">Audio captured</div>
+        <div class="kpi-val">${fmtDur(t.audio_duration_sec)}</div>
+        <div class="kpi-unit">speech segments only</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Session duration</div>
+        <div class="kpi-val">${fmtDur(s.total_duration_sec || 0)}</div>
+        <div class="kpi-unit">wall-clock time</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Whisper tokens</div>
+        <div class="kpi-val">${fmtNum(t.whisper_tokens)}</div>
+        <div class="kpi-unit">avg ${avgWms}ms / chunk</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ollama in</div>
+        <div class="kpi-val">${fmtNum(t.ollama_in_tokens)}</div>
+        <div class="kpi-unit">prompt tokens (est.)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ollama out</div>
+        <div class="kpi-val">${fmtNum(t.ollama_out_tokens)}</div>
+        <div class="kpi-unit">avg ${avgOms}ms / chunk</div>
+      </div>
+    </div>
+
+    <div class="mon-body">
+      <div class="file-info">
+        <div class="fi-row"><span class="fi-key">DB path</span>   <span class="fi-val">data/meetings.db</span></div>
+        <div class="fi-row"><span class="fi-key">Audio file</span><span class="fi-val">${audioLink}</span></div>
+        <div class="fi-row"><span class="fi-key">Review</span>    <span class="fi-val">${s.review_status || 'unreviewed'}</span></div>
+        <div class="fi-row"><span class="fi-key">Chunks</span>    <span class="fi-val">${cc}</span></div>
+      </div>
+
+      <div style="font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--ts);margin-bottom:8px">Pipeline per chunk</div>
+      <table class="pipe-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Audio s</th><th>Whisper ms</th><th>Ollama ms</th>
+            <th>W-tok</th><th>O-in</th><th>O-out</th><th>English (preview)</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.chunks.slice(-200).map(c => `
+            <tr>
+              <td class="td-td-num">${c.chunk_index + 1}</td>
+              <td class="td-dur">${Number(c.audio_duration_sec || 0).toFixed(1)}</td>
+              <td class="td-ms">${c.whisper_ms || 0}</td>
+              <td class="td-ms">${c.ollama_ms  || 0}</td>
+              <td class="td-tok">${c.whisper_tokens    || 0}</td>
+              <td class="td-tok">${c.ollama_in_tokens  || 0}</td>
+              <td class="td-tok">${c.ollama_out_tokens || 0}</td>
+              <td class="td-text" title="${esc(c.english)}">${esc(c.english)}</td>
+              <td><span class="step-pill done">done</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      ${data.chunks.length > 200
+        ? `<div style="font-size:11px;color:var(--ts);margin-top:8px">Showing last 200 of ${data.chunks.length} chunks</div>`
+        : ''}
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════════════════
+function langOptions(current) {
+  if (!_cachedLangs.length) {
+    // Fallback before API response
+    return `<option value="${esc(current || 'Simplified Chinese')}">${esc(current || 'Simplified Chinese')}</option>`;
+  }
+  return _cachedLangs.map(l =>
+    `<option value="${esc(l.code)}" ${l.code === (current || 'Simplified Chinese') ? 'selected' : ''}>${esc(l.label)}</option>`
+  ).join('');
+}
+
+function copyAll() {
+  if (!viewEntries.length) { toast('Nothing to copy'); return; }
+  const txt = viewEntries.map((c, i) =>
+    `[${fmtTime(c.timestamp || '')}]\nEN  ${c.english}\nTL  ${c.chinese}`
+  ).join('\n\n');
+  navigator.clipboard.writeText(txt)
+    .then(() => toast('Copied to clipboard'))
+    .catch(() => toast('Copy failed', true));
+}
+
+function exportCurrent() {
+  const fullId = meetingId;
+  if (fullId) window.open(`/api/sessions/${fullId}/export?fmt=txt`, '_blank');
+  else toast('No active session to export');
+}
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r    = await fetch(path, opts);
+  const text = await r.text();
+  let d; try { d = JSON.parse(text); } catch { d = { detail: text }; }
+  if (!r.ok) throw new Error(d.detail || `HTTP ${r.status}`);
+  return d;
+}
+
+function fmtTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function fmtDate(iso) {
+  return new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function fmtDur(sec) {
+  sec = parseInt(sec) || 0;
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h ? `${h}h ${m}m` : `${m}m ${String(s).padStart(2, '0')}s`;
+}
+function fmtNum(n) { return (n || 0).toLocaleString(); }
+
+function toast(msg, isErr = false) {
+  const w = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className  = 'toast' + (isErr ? ' err' : '');
+  t.textContent = msg;
+  w.appendChild(t);
+  setTimeout(() => t.remove(), 3600);
+}
+</script>
+</body>
+</html>

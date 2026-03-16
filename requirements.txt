@@ -1,0 +1,31 @@
+# MemoMe v2 — minimal dependencies, no Kafka, no Redis
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+httpx>=0.27.0
+numpy>=1.24.0
+
+# Audio capture
+sounddevice>=0.5.0
+
+# Transcription
+# >=1.1.0 required for: large-v3-turbo model support, 3x faster CPU VAD,
+# and 3x faster feature extraction (all added after 1.0.0).
+# Model is auto-downloaded from HuggingFace on first run.
+#   base            ~75 MB   ~16x real-time   good for testing
+#   small           ~244 MB  ~6x  real-time   better accents
+#   distil-large-v3 ~756 MB  ~3x  real-time   English-focused, very accurate
+#   large-v3-turbo  ~1.6 GB  ~8x  real-time   best multilingual (recommended)
+# Set WHISPER_MODEL in .env to switch. Default: base
+faster-whisper>=1.1.0
+
+# ── Optional dependencies ────────────────────────────────────────────────────
+
+# Uncomment ONE of the torch options below if you need either:
+#   (A) CUDA GPU acceleration — set WHISPER_DEVICE=cuda in .env
+#       Requires NVIDIA GPU + CUDA 12 + cuDNN 9.
+#       Gives 10-50x speed improvement over CPU for large-v3-turbo.
+#   (B) Silero VAD — set SILERO=1 in .env
+#       Better voice detection in noisy environments than energy-based VAD.
+#       Uses ~1 GB extra RAM.
+# Both (A) and (B) use the same torch install — one line covers both.
+# torch>=2.0.0

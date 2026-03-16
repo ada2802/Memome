@@ -1,0 +1,149 @@
+# .github/workflows/build-release.yml
+#
+# Triggered when you push a tag like v3.0 or v3.1.2
+#
+# What it does:
+#   1. Builds on Windows → creates .exe installer
+#   2. Builds on macOS   → creates .dmg
+#   3. Creates a GitHub Release and uploads both files automatically
+#
+# Usage:
+#   git tag v3.0
+#   git push origin v3.0
+#   → GitHub Actions builds and publishes the release automatically
+
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"            # triggers on v3.0, v3.1, v3.1.2 etc.
+
+permissions:
+  contents: write       # needed to create GitHub Releases
+
+jobs:
+  # ── Windows build ────────────────────────────────────────────────────────
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller pystray pillow pywin32
+
+      - name: Build with PyInstaller
+        run: pyinstaller MemoMe.spec --clean --noconfirm
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes
+
+      - name: Build installer
+        run: |
+          mkdir installer
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: installer/MemoMe-*-windows-setup.exe
+
+  # ── macOS build ──────────────────────────────────────────────────────────
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller pystray pillow
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Build with PyInstaller + create-dmg
+        run: |
+          chmod +x build_mac.sh
+          ./build_mac.sh
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: installer/MemoMe-*-mac.dmg
+
+  # ── Create GitHub Release ────────────────────────────────────────────────
+  release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: release/
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-dmg
+          path: release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "MemoMe ${{ github.ref_name }}"
+          body: |
+            ## MemoMe ${{ github.ref_name }}
+
+            Local, private voice transcription + real-time translation.
+            No cloud. No subscription. Runs entirely on your machine.
+
+            ### Prerequisites (install once before running MemoMe)
+
+            1. **Ollama** — https://ollama.com
+            2. After installing Ollama, pull the translation model:
+               ```
+               ollama pull qwen3.5:9b
+               ```
+
+            ### Installation
+
+            | Platform | File | Instructions |
+            |---|---|---|
+            | Windows 10/11 | `MemoMe-*-windows-setup.exe` | Run installer → Start Menu → MemoMe |
+            | macOS 12+ | `MemoMe-*-mac.dmg` | Open DMG → drag to Applications → double-click |
+
+            ### First launch
+
+            - MemoMe opens in your browser at http://localhost:8765
+            - A **●** icon appears in your system tray (Windows) or menu bar (macOS)
+            - Wait for the **Ready** badge — then click **Start Recording**
+
+          files: release/*
+          draft: false
+          prerelease: false
