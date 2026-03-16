@@ -206,38 +206,6 @@ HOST=0.0.0.0
 PORT=8765
 ```
 
----
-
-## Architecture
-
-```
-┌─────────────────── One uvicorn process ─────────────────────────────┐
-│                                                                      │
-│  [Audio thread]  sd.InputStream callback                            │
-│        │  ├─ stream float32 PCM → WAV file (disk, O(1) RAM)        │
-│        │  └─ VAD filter + SpeechAccumulator                        │
-│        ↓         (flushes every MAX_SPEECH_SEC or on silence)       │
-│  audio_q  (asyncio.Queue, maxsize=60)                               │
-│        │                                                             │
-│  [whisper_worker]  WhisperModel in executor thread pool             │
-│        │  → detected language + transcribed text                    │
-│        ↓                                                             │
-│  english_q  (asyncio.Queue, maxsize=120)                            │
-│        │                                                             │
-│  [ollama_worker]  HTTP POST → localhost:11434/api/generate          │
-│        │  → translated text + save to SQLite                        │
-│        │  (skips Ollama if source lang == target lang)              │
-│        ↓                                                             │
-│  chinese_q  (asyncio.Queue, maxsize=120)                            │
-│        │                                                             │
-│  [broadcast_worker]  push to all connected WebSockets               │
-│        │                                                             │
-│  Browser  ←  ws://localhost:8765/ws/{meeting_id}                    │
-│                                                                      │
-│  [session_gc_task]  cleans ended sessions from RAM every 60s        │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-```
 
 **Key design decisions:**
 
@@ -313,53 +281,4 @@ WHISPER_MODEL=large-v3-turbo   # GPU makes the large model very fast
 
 ---
 
-## File Structure
 
-```
-memome_v2/
-├── server.py           FastAPI app — workers, routes, DB, WAV streaming (~1150 lines)
-├── core/
-│   ├── config.py       All settings loaded from .env
-│   ├── vad.py          VAD, SpeechAccumulator, normalize_audio, pad_audio
-│   └── __init__.py
-├── static/
-│   └── index.html      Complete SPA — HTML + CSS + JS (~1600 lines)
-├── data/
-│   ├── meetings.db     SQLite database (auto-created, WAL mode)
-│   └── audio/*.wav     Per-session WAV files (streamed, auto-created)
-├── requirements.txt
-├── .env.example
-└── README.md
-```
-
----
-
-## Troubleshooting
-
-**"Whisper model not loaded yet"**  
-Wait 15–30 seconds after starting. The status badge shows **Loading model…** while Whisper loads in the background. The Start button enables automatically when ready.
-
-**"sounddevice not installed"**  
-`pip install sounddevice` — also needs the PortAudio system library (see Quick Start).
-
-**Translation shows "[unavailable — …]"**  
-Ollama is not running or the model hasn't been pulled. Start with `ollama serve` or via the Ollama desktop app, then run `ollama pull qwen3.5:9b`.
-
-**Too few chunks — fast speaker produces only 1–2 chunks per minute**  
-Lower `MAX_SPEECH_SEC` in `.env` (e.g. `5.0`) and `SILENCE_FLUSH_SEC` (e.g. `0.3`). The default 8s cap is tuned for news/lecture speed.
-
-**No transcripts appearing**  
-- Check your microphone is the default input device in Windows Sound settings
-- Lower `VAD_THRESHOLD` in `.env` to `0.005` if your mic is quiet or distant
-- Check the server console for `[Whisper]` output lines
-
-**Transcription is slow / falling behind**  
-- Switch to a smaller model: `WHISPER_MODEL=small` or `WHISPER_MODEL=base`
-- Lower `WHISPER_BEAM_SIZE=1` in `.env` for greedy decoding (~30% faster, slightly less accurate)
-- If you have an NVIDIA GPU: set `WHISPER_DEVICE=cuda`
-
-**Chrome DevTools 404 in server logs**  
-Harmless — Chrome probes localhost servers automatically. The server returns an empty JSON response to silence it.
-
-**OOM crash during a long recording**  
-Should not happen with the current streaming WAV writer. If it does, check available disk space — the WAV file itself grows at ~1.8 MB/minute (439 MB for 4 hours).
