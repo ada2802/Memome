@@ -141,70 +141,6 @@ Open http://localhost:8765
 
 All settings can be set in `.env` (copy from `.env.example`). Every setting has a sensible default and the server reads `.env` on startup.
 
-```bash
-# ── Whisper ────────────────────────────────────────────────────────────────
-# Model options (fastest → most accurate):
-#   tiny            ~40 MB    ~32x real-time   quick tests only
-#   base            ~75 MB    ~16x real-time   default, good for testing
-#   small           ~244 MB   ~6x  real-time   better accents
-#   distil-large-v3 ~756 MB   ~3x  real-time   English-focused, very accurate
-#   large-v3-turbo  ~1.6 GB   ~8x  real-time   best multilingual (recommended)
-WHISPER_MODEL=large-v3-turbo
-
-# Device: cpu (default) | cuda (NVIDIA GPU, 10-50x faster) | auto (detect)
-WHISPER_DEVICE=cpu
-
-# Beam size: 1 = greedy/fastest, 5 = default balanced
-WHISPER_BEAM_SIZE=5
-
-# Force a specific language instead of auto-detect (e.g. en, zh, ja)
-# Leave blank for auto-detect (recommended for multilingual sessions)
-# WHISPER_LANG=
-
-# ── Ollama ─────────────────────────────────────────────────────────────────
-# Recommended models (pull with: ollama pull <model>):
-#   qwen3.5:9b    best quality, ~6.6 GB RAM   (recommended for 16 GB+ machines)
-#   qwen3.5:4b    good quality, ~2.9 GB RAM   (recommended for 8 GB machines)
-#   qwen2.5:7b    original default, ~5 GB RAM
-#   qwen2.5:3b    lighter, ~2 GB RAM
-OLLAMA_MODEL=qwen3.5:9b
-OLLAMA_URL=http://localhost:11434
-OLLAMA_TIMEOUT=45
-
-# ── Translation ─────────────────────────────────────────────────────────────
-# Skip Ollama call when source language already matches target (saves 1-3s/chunk)
-SKIP_SAME_LANG=1
-
-# ── Audio / VAD ─────────────────────────────────────────────────────────────
-# Seconds of silence before flushing chunk to Whisper
-# 0.5s works well for fast speakers (news, lectures)
-# Raise to 1.0-1.5s for slower conversational speech
-SILENCE_FLUSH_SEC=0.5
-
-# Hard cap: flush chunk after this many seconds of continuous speech
-# 8s gives ~6-8 chunks/minute — good for fast speakers like news anchors
-# Raise to 12-15s for slower speech or more context per chunk
-MAX_SPEECH_SEC=8.0
-
-# VAD energy threshold (0.0-1.0): lower = more sensitive
-# 0.008 works for broadcast audio and normal microphones
-# Lower to 0.005 for distant or quiet microphones
-VAD_THRESHOLD=0.008
-
-# ── Optional fine-tuning ─────────────────────────────────────────────────────
-OVERLAP_SEC=0.5         # context from previous segment prepended to next
-MIN_SPEECH_SEC=0.6      # clips shorter than this are dropped (noise suppression)
-PAD_SEC=0.25            # silence padding added before/after each segment
-
-# ── Sessions ─────────────────────────────────────────────────────────────────
-SESSIONS_LIST_LIMIT=100     # max sessions returned by the API
-SESSION_GC_SEC=300          # seconds before ended sessions are cleared from RAM
-
-# ── App ──────────────────────────────────────────────────────────────────────
-DB_PATH=data/meetings.db
-HOST=0.0.0.0
-PORT=8765
-```
 
 
 **Key design decisions:**
@@ -221,14 +157,6 @@ PORT=8765
 ## Long Recording Support (3–4 hours)
 
 MemoMe is specifically designed to handle multi-hour recordings without memory issues:
-
-| Old behaviour | New behaviour |
-|---|---|
-| All PCM buffered in RAM (`audio_frames` list) | Streamed to WAV file per callback — O(1) RAM |
-| `np.concatenate` at stop = 1.7 GB peak for 4h | File is already written — just close it at stop |
-| `session.chunks` grew unbounded | Capped at 500 entries (~66 min of live-feed history) |
-| `MAX_SPEECH_SEC` only checked during silence | Also checked during speech — fast speakers get chunked correctly |
-
 Expected RAM usage for a 4-hour Bloomberg session: flat ~14 GB throughout.
 
 ---
