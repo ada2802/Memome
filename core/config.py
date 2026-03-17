@@ -18,7 +18,7 @@ class Config:
     #   base   ~75MB   ~16x real-time   good for testing
     #   small  ~244MB  ~6x  real-time   solid quality
     #   distil-large-v3  ~756MB  ~3-4x real-time  best quality
-    WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "base")
+    WHISPER_MODEL: str = os.getenv("WHISPER_MODEL", "large-v3-turbo")
 
     # Device for Whisper inference. Options:
     #   "cpu"   — always safe, no GPU required
@@ -35,7 +35,7 @@ class Config:
     # ── Ollama ───────────────────────────────────────────────────────────────
     OLLAMA_URL: str = os.getenv("OLLAMA_URL", "http://localhost:11434")
     # Use qwen2.5:3b for lower RAM (~2GB) or qwen2.5:7b for better quality (~5GB)
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen3.5:9b")
     OLLAMA_TIMEOUT: int = int(os.getenv("OLLAMA_TIMEOUT", "45"))
 
     # ── Translation ─────────────────────────────────────────────────────────
